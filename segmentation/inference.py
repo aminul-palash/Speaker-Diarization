@@ -3,18 +3,28 @@ import numpy as np
 import soundfile as sf
 from pyannote.audio import Pipeline
 from safetensors.torch import load_file
-import json
+import os
+from dotenv import load_dotenv
+from pyannote.audio import Pipeline
+
+load_dotenv()  # loads .env
+
+hf_token = os.getenv("HUGGINGFACE_TOKEN")
+
+if not hf_token:
+    raise ValueError("HUGGINGFACE_TOKEN not found in .env")
 from pathlib import Path
 
 device = torch.device("cpu")
 
 # Load pipeline
 pipeline = Pipeline.from_pretrained(
-    "pyannote/speaker-diarization-3.1"
+    "pyannote/speaker-diarization-3.1",
+    use_auth_token=hf_token
 )
 
 # Load fine-tuned segmentation model from local checkpoint
-checkpoint_path = Path("/home/aminul/Documents/speaker/Speaker-Diarization/checkpoint-1200")
+checkpoint_path = Path("/home/technonext/Downloads/Speaker-Diarization-main/segmentation/model")
 
 # Get the segmentation model from the pipeline
 seg_model = pipeline._segmentation.model
@@ -125,7 +135,7 @@ def save_rttm(segments, audio_path, out_path="output.rttm"):
     print(f"Saved RTTM to {out_path}")
 
 if __name__ == "__main__":
-    audio_file = "/home/aminul/Documents/speaker/Speaker-Diarization/sample_0.wav"  # Change this to your audio file path
+    audio_file = "/home/technonext/Downloads/Speaker-Diarization-main/sample_0.wav"  # Change this to your audio file path
     segments = run_inference(audio_file)
     
     # Print time slot format

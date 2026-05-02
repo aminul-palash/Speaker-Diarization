@@ -149,3 +149,10 @@ The checkpoint directory contains:
 - CallHome was considered but VoxConverse has naturally higher speaker count
 - 30-sample subset is intentionally small for assignment scope
 - Larger dataset and more epochs would further reduce DER
+
+
+uvicorn diarization_api:app --host 0.0.0.0 --port 8001
+
+
+curl -X POST "http://localhost:8001/diarize" \
+  -F "audio=@sample.wav"
