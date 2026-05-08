@@ -1,0 +1,81 @@
+"""
+utils/writers.py
+Write transcript output in TXT, SRT and JSON formats.
+"""
+
+import json
+from typing import List, Dict
+
+
+# ── SRT timestamp helper ──────────────────────────────────────────────────
+
+def _srt_time(s: float) -> str:
+    h, rem = divmod(int(s), 3600)
+    m, sec = divmod(rem, 60)
+    ms     = int((s - int(s)) * 1000)
+    return f"{h:02d}:{m:02d}:{sec:02d},{ms:03d}"
+
+
+# ── Writers ───────────────────────────────────────────────────────────────
+
+def write_txt(
+    utterances: List[dict],
+    path: str,
+    role_map: Dict[str, str] = None,
+) -> None:
+    """
+    Plain-text transcript.
+    Format:
+        [doctor]
+        আপনার কি সমস্যা হচ্ছে?
+
+        [patient]
+        জ্বর আছে তিন দিন ধরে।
+    """
+    role_map = role_map or {}
+    with open(path, "w", encoding="utf-8") as f:
+        for u in utterances:
+            label = role_map.get(u["speaker"], u["speaker"])
+            f.write(f"[{label}]\n{u['text'].strip()}\n\n")
+    print(f"   ✅ TXT  → {path}")
+
+
+def write_srt(
+    utterances: List[dict],
+    path: str,
+    role_map: Dict[str, str] = None,
+) -> None:
+    """
+    SRT subtitle file with speaker labels.
+    """
+    role_map = role_map or {}
+    with open(path, "w", encoding="utf-8") as f:
+        for i, u in enumerate(utterances, 1):
+            label = role_map.get(u["speaker"], u["speaker"])
+            f.write(f"{i}\n")
+            f.write(f"{_srt_time(u['start'])} --> {_srt_time(u['end'])}\n")
+            f.write(f"[{label}]: {u['text'].strip()}\n\n")
+    print(f"   ✅ SRT  → {path}")
+
+
+def write_json(
+    utterances: List[dict],
+    path: str,
+    role_map: Dict[str, str] = None,
+    meta: dict = None,
+) -> None:
+    """
+    JSON output — machine-readable, ready for downstream
+    clinical NLP / prescription generation.
+    """
+    role_map = role_map or {}
+    payload  = {
+        "meta": meta or {},
+        "utterances": [
+            {**u, "role": role_map.get(u["speaker"], "unknown")}
+            for u in utterances
+        ],
+    }
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False, indent=2)
+    print(f"   ✅ JSON → {path}")

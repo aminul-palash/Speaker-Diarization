@@ -1,0 +1,18 @@
+# Core pipeline
+whisperx
+transformers>=4.36.0
+accelerate
+pyannote.audio>=3.1.0
+torchaudio
+soundfile
+librosa
+pydub
+
+# Fine-tuning
+datasets
+evaluate
+# jiwer
+# pytorch-lightning
+
+# Optional: LLM role classifier
+# openai
