@@ -96,6 +96,9 @@ def run(args):
     print("=" * 55)
     prepared_wav = os.path.join(temp_dir, f"{base}_16k.wav")
     convert_to_wav_mono_16k(args.audio, prepared_wav)
+    # Save preprocessed audio path
+    with open(os.path.join(args.output_dir, f"{base}_stage1_preprocessed.txt"), "w") as f:
+        f.write(prepared_wav + "\n")
 
     # ── Stage 2: ASR transcription ────────────────────────────────────────
     print("\n" + "=" * 55)
@@ -108,6 +111,10 @@ def run(args):
         prepared_wav, asr_model, asr_backend,
         cfg.DEVICE, cfg.LANGUAGE, cfg.BATCH_SIZE
     )
+    # Save ASR output
+    import json
+    with open(os.path.join(args.output_dir, f"{base}_stage2_asr.json"), "w") as f:
+        json.dump(result, f, ensure_ascii=False, indent=2)
     detected_lang = result.get("language", cfg.LANGUAGE)
     free_asr_model(asr_model, asr_backend)
 
@@ -118,6 +125,9 @@ def run(args):
     word_segments = align_words(
         result["segments"], prepared_wav, cfg.LANGUAGE, cfg.DEVICE
     )
+    # Save alignment output
+    with open(os.path.join(args.output_dir, f"{base}_stage3_alignment.json"), "w") as f:
+        json.dump(word_segments, f, ensure_ascii=False, indent=2)
 
     # ── Stage 4: Diarization ──────────────────────────────────────────────
     print("\n" + "=" * 55)
@@ -141,13 +151,22 @@ def run(args):
         min_speakers=args.min_speakers,
         max_speakers=args.max_speakers,
     )
+    # Save diarization output (as string)
+    with open(os.path.join(args.output_dir, f"{base}_stage4_diarization.txt"), "w") as f:
+        f.write(str(diarization))
 
     # ── Stage 5: Speaker assignment & grouping ────────────────────────────
     print("\n" + "=" * 55)
     print("STAGE 5 — Speaker Assignment & Utterance Grouping")
     print("=" * 55)
     words_with_speakers = assign_speakers_to_words(word_segments, diarization)
-    utterances          = group_into_utterances(words_with_speakers)
+    # Save word-speaker assignment
+    with open(os.path.join(args.output_dir, f"{base}_stage5_words_with_speakers.json"), "w") as f:
+        json.dump(words_with_speakers, f, ensure_ascii=False, indent=2)
+    utterances          = group_into_utterances(words_with_speakers, diarization)
+    # Save utterances
+    with open(os.path.join(args.output_dir, f"{base}_stage5_utterances.json"), "w") as f:
+        json.dump(utterances, f, ensure_ascii=False, indent=2)
     stats               = speaker_stats(utterances)
 
     print(f"   {len(utterances)} utterances across {len(stats)} speakers")
@@ -175,6 +194,9 @@ def run(args):
     if not role_map:
         print("   Using heuristic role assignment (most words → doctor)...")
         role_map = heuristic_role_map(utterances)
+    # Save role map
+    with open(os.path.join(args.output_dir, f"{base}_stage6_role_map.json"), "w") as f:
+        json.dump(role_map, f, ensure_ascii=False, indent=2)
 
     print("\n   Role map:")
     for spk, role in role_map.items():
