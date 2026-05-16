@@ -18,8 +18,7 @@ Usage:
     # Use a fine-tuned Pyannote segmentation checkpoint
     python main.py --seg-ckpt output/pyannote_clinical/segmentation_clinical.ckpt
 
-    # Use LLM role classifier instead of heuristic
-    python main.py --openai-key sk-...
+
 """
 
 import argparse
@@ -38,9 +37,7 @@ from utils.speaker        import (
     assign_speakers_to_words,
     group_into_utterances,
     speaker_stats,
-    heuristic_role_map,
 )
-from utils.role_classifier import llm_role_map
 from utils.writers         import write_txt, write_srt, write_json
 
 
@@ -69,10 +66,6 @@ def parse_args():
     parser.add_argument(
         "--seg-ckpt", default=None,
         help="Path to fine-tuned Pyannote segmentation checkpoint (.ckpt)"
-    )
-    parser.add_argument(
-        "--openai-key", default=None,
-        help="OpenAI API key for LLM-based role classification"
     )
     parser.add_argument(
         "--output-dir", default=cfg.OUTPUT_DIR,
@@ -180,34 +173,9 @@ def run(args):
     for u in utterances[:5]:
         print(f"      [{u['speaker']} @ {u['start']:.1f}s]  {u['text'][:80]}")
 
-    # ── Stage 6: Speaker role assignment ──────────────────────────────────
+    # ── Stage 6: Save outputs ──────────────────────────────────────────────
     print("\n" + "=" * 55)
-    print("STAGE 6 — Speaker Role Assignment")
-    print("=" * 55)
-
-    role_map = {}
-
-    if args.openai_key:
-        print("   Using LLM-based role classifier...")
-        role_map = llm_role_map(utterances, api_key=args.openai_key)
-
-    if not role_map:
-        print("   Using heuristic role assignment (most words → doctor)...")
-        role_map = heuristic_role_map(utterances)
-    # Save role map
-    with open(os.path.join(args.output_dir, f"{base}_stage6_role_map.json"), "w") as f:
-        json.dump(role_map, f, ensure_ascii=False, indent=2)
-
-    print("\n   Role map:")
-    for spk, role in role_map.items():
-        s = stats.get(spk, {})
-        print(f"      {spk:<15s} → {role:<12s}  "
-              f"(words={s.get('words', 0)}, "
-              f"time={s.get('seconds', 0):.1f}s)")
-
-    # ── Stage 7: Save outputs ─────────────────────────────────────────────
-    print("\n" + "=" * 55)
-    print("STAGE 7 — Saving Outputs")
+    print("STAGE 6 — Saving Outputs")
     print("=" * 55)
 
     meta = {
@@ -216,7 +184,6 @@ def run(args):
         "asr_model":    args.whisper_model,
         "diar_model":   cfg.DIARIZATION_MODEL,
         "speakers":     speakers_found,
-        "role_map":     role_map,
         "n_utterances": len(utterances),
     }
 
@@ -224,9 +191,9 @@ def run(args):
     srt_path  = os.path.join(args.output_dir, f"{base}_transcript.srt")
     json_path = os.path.join(args.output_dir, f"{base}_transcript.json")
 
-    write_txt (utterances, txt_path,  role_map)
-    write_srt (utterances, srt_path,  role_map)
-    write_json(utterances, json_path, role_map, meta)
+    write_txt (utterances, txt_path)
+    write_srt (utterances, srt_path)
+    write_json(utterances, json_path, meta=meta)
 
     shutil.rmtree(temp_dir, ignore_errors=True)
     print("\n   Temp files removed.")

@@ -1,7 +1,7 @@
 # Bangla Clinical ASR + Speaker Diarization Pipeline
 
 End-to-end pipeline for transcribing doctor–patient consultations
-in Bengali with multi-speaker labelling (doctor / patient / attendant).
+in Bengali with multi-speaker identification.
 
 ---
 
@@ -21,7 +21,6 @@ bangla_asr_pipeline/
 ├── utils/
 │   ├── audio.py              # audio conversion (→ 16 kHz mono WAV)
 │   ├── speaker.py            # word→speaker mapping, utterance grouping
-│   ├── role_classifier.py    # optional LLM-based role classifier
 │   └── writers.py            # TXT / SRT / JSON output
 │
 ├── finetune/
@@ -70,12 +69,7 @@ python main.py --audio data/consultation.wav
 python main.py --audio data/consultation.wav --min-speakers 2 --max-speakers 3
 ```
 
-### 3. Use LLM-based role classifier (more accurate than heuristic)
-```bash
-python main.py --audio data/consultation.wav --openai-key sk-...
-```
-
-### 4. Use fine-tuned models
+### 3. Use fine-tuned models
 ```bash
 python main.py \
   --audio data/consultation.wav \

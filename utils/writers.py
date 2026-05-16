@@ -21,60 +21,49 @@ def _srt_time(s: float) -> str:
 def write_txt(
     utterances: List[dict],
     path: str,
-    role_map: Dict[str, str] = None,
 ) -> None:
     """
     Plain-text transcript.
     Format:
-        [doctor]
+        [SPEAKER_00]
         আপনার কি সমস্যা হচ্ছে?
 
-        [patient]
+        [SPEAKER_01]
         জ্বর আছে তিন দিন ধরে।
     """
-    role_map = role_map or {}
     with open(path, "w", encoding="utf-8") as f:
         for u in utterances:
-            label = role_map.get(u["speaker"], u["speaker"])
-            f.write(f"[{label}]\n{u['text'].strip()}\n\n")
+            f.write(f"[{u['speaker']}]\n{u['text'].strip()}\n\n")
     print(f"   ✅ TXT  → {path}")
 
 
 def write_srt(
     utterances: List[dict],
     path: str,
-    role_map: Dict[str, str] = None,
 ) -> None:
     """
     SRT subtitle file with speaker labels.
     """
-    role_map = role_map or {}
     with open(path, "w", encoding="utf-8") as f:
         for i, u in enumerate(utterances, 1):
-            label = role_map.get(u["speaker"], u["speaker"])
             f.write(f"{i}\n")
             f.write(f"{_srt_time(u['start'])} --> {_srt_time(u['end'])}\n")
-            f.write(f"[{label}]: {u['text'].strip()}\n\n")
+            f.write(f"[{u['speaker']}]: {u['text'].strip()}\n\n")
     print(f"   ✅ SRT  → {path}")
 
 
 def write_json(
     utterances: List[dict],
     path: str,
-    role_map: Dict[str, str] = None,
     meta: dict = None,
 ) -> None:
     """
     JSON output — machine-readable, ready for downstream
     clinical NLP / prescription generation.
     """
-    role_map = role_map or {}
     payload  = {
         "meta": meta or {},
-        "utterances": [
-            {**u, "role": role_map.get(u["speaker"], "unknown")}
-            for u in utterances
-        ],
+        "utterances": utterances,
     }
     with open(path, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)

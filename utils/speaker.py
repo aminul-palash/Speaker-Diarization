@@ -135,18 +135,4 @@ def speaker_stats(utterances: List[dict]) -> Dict[str, dict]:
     return dict(stats)
 
 
-def heuristic_role_map(utterances: List[dict]) -> Dict[str, str]:
-    """
-    Assign roles based on word count:
-      most words  → doctor
-      second most → patient
-      rest        → attendant
 
-    This is a reasonable default for clinical audio where the
-    doctor typically speaks the most. Override with the LLM
-    classifier in utils/role_classifier.py for higher accuracy.
-    """
-    stats  = speaker_stats(utterances)
-    ranked = sorted(stats.items(), key=lambda x: -x[1]["words"])
-    labels = ["doctor", "patient"] + ["attendant"] * 20
-    return {spk: labels[i] for i, (spk, _) in enumerate(ranked)}
